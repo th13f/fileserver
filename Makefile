@@ -5,7 +5,7 @@ all: x86
 endif
 
 x86:
-  @echo "Compiling for x86..."
+	@echo "Compiling for x86..."
 	gcc -pthread -o server server.c
 	gcc -o client client.c
 
