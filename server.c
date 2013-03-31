@@ -9,31 +9,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
+#include "serve_cli.c"
 
 //#define PTHREAD
-
-void* serve_client(void* connection) {
-    int conn = *((int*) connection);
-    char* buffer;
-    FILE* file;
-    long size;
-
-    file = fopen("transfer", "r");
-    if (!file) {
-        strcpy(buffer, "File not found, sorry.\n");
-    } else {
-        fseek(file, 0L, SEEK_END);
-        size = ftell(file);
-        fseek(file, 0L, SEEK_SET);
-        printf("File size: %ld\n", size);
-        buffer = (char*) malloc(sizeof(char) * size);
-        fread(buffer, sizeof(char), size, file);
-    }
-
-    write(conn, buffer, strlen(buffer));
-    printf("Client served.\n");
-    close(conn);
-}
 
 int main(int argc, char *argv[])
 {
@@ -56,31 +34,30 @@ int main(int argc, char *argv[])
     listen(listenfd, 10);
     printf("Server started listening...\n");
 
-    while (1)
-    {
-  pid_t forkID;
-	pthread_t pt;
+    while (1) {
+    	pid_t forkID;
+		pthread_t pt;
 
-	connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
+		connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
 
 #ifdef PTHREAD
-	pthread_create(&pt, NULL, serve_client, (void *) &connfd);
-	printf("\nClient connected.\n");
-	fflush(stdout);
-#else
-	forkID = fork();
-	if (forkID < 0) {
-		printf("\nFork failed.\n");
-		fflush(stdout);
-		continue;
-	} else if (forkID == 0) {
+		pthread_create(&pt, NULL, serve_client, (void *) &connfd);
 		printf("\nClient connected.\n");
 		fflush(stdout);
-		close(listenfd);
-		serve_client((void *) &connfd);
-		return 0;
-	}
-	close(connfd);
+#else
+		forkID = fork();
+		if (forkID < 0) {
+			printf("\nFork failed.\n");
+			fflush(stdout);
+			continue;
+		} else if (forkID == 0) {
+			printf("\nClient connected.\n");
+			fflush(stdout);
+			close(listenfd);
+			serve_client((void *) &connfd);
+			return 0;
+		}
+		close(connfd);
 #endif
     }
 
